@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>排班管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --color-day: #f59e0b;
+            --color-eve: #3b82f6;
+            --color-night: #8b5cf6;
+            --color-rest: #10b981;
+            --holiday-color: #ef4444;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: 10px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .calendar-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            width: 100%; max-width: 500px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.5);
+            margin-top: 10px;
+        }
+
+        .calendar-header {
+            background: #fff; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .current-month { font-size: 1.1rem; font-weight: 600; color: #1f2937; }
+
+        .nav-btn {
+            background: #f3f4f6; border: none;
+            width: 36px; height: 36px; border-radius: 10px;
+            cursor: pointer; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            color: #374151;
+        }
+
+        .nav-btn:active { transform: scale(0.95); background: #e5e7eb; }
+
+        .sequence-bar {
+            background: #f9fafb; padding: 10px 15px;
+            display: flex; align-items: center; gap: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sequence-label { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
+
+        .sequence-tags { display: flex; gap: 6px; flex-wrap: nowrap; }
+
+        .seq-tag {
+            padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;
+            font-weight: 500; white-space: nowrap;
+        }
+
+        .seq-白班 { background: #fef3c7; color: #d97706; }
+        .seq-前夜 { background: #dbeafe; color: #2563eb; }
+        .seq-后夜 { background: #ede9fe; color: #7c3aed; }
+        .seq-休息 { background: #d1fae5; color: #059669; }
+
+        .calendar-grid {
+            padding: 8px; display: grid;
+            grid-template-columns: repeat(7, 1fr); gap: 4px;
+        }
+
+        .weekday {
+            text-align: center; font-size: 0.75rem;
+            font-weight: 600; color: #9ca3af; padding-bottom: 8px;
+        }
+
+        .day-cell {
+            min-height: 55px;
+            background: #fff;
+            border-radius: 10px; padding: 2px;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-start; border: 1px solid #f3f4f6;
+            cursor: pointer; position: relative;
+            transition: all 0.15s ease;
+        }
+
+        .day-cell:active { transform: scale(0.95); }
+
+        @media screen and (max-width: 400px) {
+            .day-cell { min-height: 50px; }
+            .day-number { font-size: 0.85rem !important; }
+            .lunar-text { font-size: 0.55rem !important; }
+            .shift-badge { font-size: 0.5rem !important; padding: 1px 0 !important; }
+        }
+
+        .holiday-badge {
+            position: absolute; top: 1px; right: 1px;
+            font-size: 8px; color: #fff; background: #ef4444;
+            padding: 0px 2px; border-radius: 2px; font-weight: bold;
+            z-index: 2;
+        }
+
+        .date-info { 
+            display: flex; flex-direction: column; align-items: center; 
+            margin-top: 2px; margin-bottom: 4px; 
+        }
+        .day-number { font-size: 0.9rem; font-weight: 600; color: #374151; }
+        .lunar-text { font-size: 0.6rem; color: #9ca3af; line-height: 1; }
+        .holiday-text { color: var(--holiday-color); font-weight: 600; }
+        .solar-term { color: #f59e0b; font-weight: 600; }
+
+        .shift-badge {
+            width: 90%; font-size: 0.6rem; padding: 2px 0;
+            border-radius: 4px; color: white; text-align: center; font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .shift-白班 { background: var(--color-day); }
+        .shift-前夜 { background: var(--color-eve); }
+        .shift-后夜 { background: var(--color-night); }
+        .shift-休息 { background: var(--color-rest); }
+
+        .today-marker { border: 1.5px solid var(--primary) !important; background: #f5f7ff; }
+
+        .legend {
+            padding: 10px; background: #f9fafb;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px;
+        }
+
+        .legend-item { display: flex; align-items: center; font-size: 0.7rem; color: #6b7280; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none;
+            justify-content: center; align-items: flex-end;
+            z-index: 1000; backdrop-filter: blur(4px);
+        }
+
+        .modal-content { 
+            background: white; padding: 20px; border-radius: 20px 20px 0 0; width: 100%;
+            max-height: 85vh; overflow-y: auto;
+            transform: translateY(100%); transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+        }
+
+        .modal-title { font-size: 1rem; font-weight: 600; color: #1f2937; }
+        .modal-close {
+            width: 32px; height: 32px; border: none; background: #f3f4f6;
+            border-radius: 50%; cursor: pointer; font-size: 1.2rem; color: #6b7280;
+        }
+
+        .selected-info {
+            text-align: center; padding: 15px; background: #f9fafb;
+            border-radius: 12px; margin-bottom: 15px;
+        }
+        .selected-date { font-size: 1.1rem; font-weight: 600; color: #1f2937; margin-bottom: 4px; }
+        .selected-lunar { font-size: 0.85rem; color: #6b7280; }
+
+        .modal-section { margin-bottom: 20px; }
+        .section-title { font-size: 0.85rem; font-weight: 600; color: #6b7280; margin-bottom: 10px; }
+
+        .shift-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .option-btn {
+            padding: 14px 12px; border: 2px solid #e5e7eb; border-radius: 10px;
+            background: #fff; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+
+        .option-btn:active { transform: scale(0.98); }
+        .option-btn.selected { border-color: var(--primary); background: #eef2ff; }
+        .option-btn .shift-name { font-weight: 600; }
+        .option-btn .shift-time { font-size: 0.7rem; color: #9ca3af; }
+
+        .config-area { display: flex; flex-direction: column; gap: 10px; }
+        .sequence-input {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid #e5e7eb; font-size: 0.9rem;
+            background: #f9fafb;
+        }
+        .sequence-input:focus { outline: none; border-color: var(--primary); }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .action-btn {
+            flex: 1; padding: 14px; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            transition: all 0.15s;
+        }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-reset { background: #f3f4f6; color: #6b7280; }
+        .btn-cancel { background: #f3f4f6; color: #6b7280; }
+        
+        .action-btn:active { transform: scale(0.98); }
+
+        .current-ref {
+            font-size: 0.75rem; color: #9ca3af; text-align: center; margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calendar-card">
+    <header class="calendar-header">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div id="currentMonth" class="current-month">2026年 03月</div>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+    </header>
+
+    <div class="sequence-bar">
+        <span class="sequence-label">当前序列：</span>
+        <div id="sequenceTags" class="sequence-tags"></div>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid">
+        <div class="weekday">日</div><div class="weekday">一</div><div class="weekday">二</div>
+        <div class="weekday">三</div><div class="weekday">四</div><div class="weekday">五</div>
+        <div class="weekday">六</div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:var(--color-day)"></span>白班(8-16)</div>
+        <div class="legend-item"><span class="dot" style="background:var(--color-eve)"></span>前夜(16-24)</div>
+        <div class="legend-item"><span class="dot" style="background:var(--color-night)"></span>后夜(0-8)</div>
+        <div class="legend-item"><span class="dot" style="background:var(--color-rest)"></span>休息</div>
+    </div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">调整班次</div>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <div class="selected-info">
+            <div id="modalDate" class="selected-date">3月6日</div>
+            <div id="modalLunar" class="selected-lunar">农历正月廿七</div>
+        </div>
+
+        <div class="modal-section">
+            <div class="section-title">将该日设为序列中的：</div>
+            <div id="shiftOptions" class="shift-options"></div>
+        </div>
+
+        <div class="modal-section">
+            <div class="section-title">自定义排班序列</div>
+            <div class="config-area">
+                <input type="text" id="sequenceInput" class="sequence-input" placeholder="如：白班,前夜,休息,后夜,休息">
+                <div class="btn-group">
+                    <button class="action-btn btn-save" onclick="saveSequence()">应用新规则</button>
+                    <button class="action-btn btn-reset" onclick="resetSystem()">重置系统</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-group" style="margin-top: 10px;">
+            <button class="action-btn btn-cancel" onclick="closeModal()">取消</button>
+            <button class="action-btn btn-save" onclick="confirmShift()">确认修改</button>
+        </div>
+
+        <div id="refInfo" class="current-ref"></div>
+    </div>
+</div>
+
+<script>
+    const DEFAULT_SEQUENCE = [
+        { name: '白班', time: '8-16', class: 'seq-白班' },
+        { name: '前夜', time: '16-24', class: 'seq-前夜' },
+        { name: '休息', time: '', class: 'seq-休息' },
+        { name: '后夜', time: '0-8', class: 'seq-后夜' },
+        { name: '休息', time: '', class: 'seq-休息' }
+    ];
+
+    let SHIFT_SEQUENCE = JSON.parse(JSON.stringify(DEFAULT_SEQUENCE));
+    
+    let currentRefDate = new Date();
+    currentRefDate.setHours(0, 0, 0, 0);
+    let currentRefIndex = 0;
+
+    let viewDate = new Date();
+    let selectedDateForEdit = null;
+    let selectedShiftIndex = 0;
+
+    const LUNAR_CHARS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+
+    const SOLAR_TERMS_2026 = [
+        { month: 1, day: 20, name: '大寒' }, { month: 2, day: 4, name: '立春' },
+        { month: 2, day: 19, name: '雨水' }, { month: 3, day: 5, name: '惊蛰' },
+        { month: 3, day: 20, name: '春分' }, { month: 4, day: 5, name: '清明' },
+        { month: 4, day: 20, name: '谷雨' }, { month: 5, day: 5, name: '立夏' },
+        { month: 5, day: 21, name: '小满' }, { month: 6, day: 5, name: '芒种' },
+        { month: 6, day: 21, name: '夏至' }, { month: 7, day: 7, name: '小暑' },
+        { month: 7, day: 22, name: '大暑' }, { month: 8, day: 7, name: '立秋' },
+        { month: 8, day: 23, name: '处暑' }, { month: 9, day: 7, name: '白露' },
+        { month: 9, day: 22, name: '秋分' }, { month: 10, day: 8, name: '寒露' },
+        { month: 10, day: 23, name: '霜降' }, { month: 11, day: 7, name: '立冬' },
+        { month: 11, day: 22, name: '小雪' }, { month: 12, day: 7, name: '大雪' },
+        { month: 12, day: 21, name: '冬至' }
+    ];
+
+    const HOLIDAYS = {
+        "1-1": { name: "元旦", isHoliday: true },
+        "2-17": { name: "春节", isHoliday: true }, "2-18": { name: "春节", isHoliday: true },
+        "2-19": { name: "春节", isHoliday: true }, "2-20": { name: "春节", isHoliday: true },
+        "2-21": { name: "春节", isHoliday: true }, "2-22": { name: "春节", isHoliday: true },
+        "2-23": { name: "春节", isHoliday: true }, "2-24": { name: "春节", isHoliday: true },
+        "4-4": { name: "清明节", isHoliday: true }, "4-5": { name: "清明节", isHoliday: true },
+        "5-1": { name: "劳动节", isHoliday: true },
+        "5-2": { name: "休息", isHoliday: true }, "5-3": { name: "休息", isHoliday: true },
+        "5-4": { name: "休息", isHoliday: true }, "5-5": { name: "休息", isHoliday: true },
+        "5-31": { name: "端午节", isHoliday: true },
+        "9-15": { name: "中秋节", isHoliday: true },
+        "10-1": { name: "国庆节", isHoliday: true }, "10-2": { name: "国庆节", isHoliday: true },
+        "10-3": { name: "国庆节", isHoliday: true }, "10-4": { name: "国庆节", isHoliday: true },
+        "10-5": { name: "国庆节", isHoliday: true }, "10-6": { name: "国庆节", isHoliday: true },
+        "10-7": { name: "国庆节", isHoliday: true }
+    };
+
+    function getChineseDateInfo(date) {
+        const m = date.getMonth() + 1;
+        const d = date.getDate();
+        const key = `${m}-${d}`;
+
+        if (HOLIDAYS[key]) return { label: HOLIDAYS[key].name, isHoliday: HOLIDAYS[key].isHoliday, showBadge: HOLIDAYS[key].isHoliday };
+
+        const solarTerm = SOLAR_TERMS_2026.find(s => s.month === m && s.day === d);
+        if (solarTerm) return { label: solarTerm.name, isHoliday: false, isSolarTerm: true };
+
+        const formatter = new Intl.DateTimeFormat('zh-u-ca-chinese', { day: 'numeric', month: 'long' });
+        let lunarString = formatter.format(date).replace(/.*年/, '').trim();
+
+        if (lunarString.includes('初一')) return { label: lunarString.replace('初一', '正'), isHoliday: false };
+        
+        let dayNumMatch = lunarString.match(/\d+/);
+        if (dayNumMatch) {
+            let n = parseInt(dayNumMatch[0]);
+            let label = "";
+            if (n < 11) label = "初" + LUNAR_CHARS[n-1];
+            else if (n === 10) label = "初十";
+            else if (n < 20) label = "十" + LUNAR_CHARS[n-11];
+            else if (n === 20) label = "二十";
+            else if (n < 30) label = "廿" + LUNAR_CHARS[n-21];
+            else if (n === 30) label = "三十";
+            return { label: label, isHoliday: false };
+        }
+        return { label: lunarString, isHoliday: false };
+    }
+
+    function getShiftForDate(date) {
+        const diffDays = Math.round((date.getTime() - currentRefDate.getTime()) / 86400000);
+        const seqLen = SHIFT_SEQUENCE.length;
+        const shiftIndex = ((currentRefIndex + diffDays) % seqLen + seqLen) % seqLen;
+        return SHIFT_SEQUENCE[shiftIndex];
+    }
+
+    function updateSequenceTags() {
+        const container = document.getElementById('sequenceTags');
+        container.innerHTML = '';
+        SHIFT_SEQUENCE.forEach((item, index) => {
+            const tag = document.createElement('span');
+            tag.className = `seq-tag ${item.class}`;
+            tag.textContent = item.name;
+            container.appendChild(tag);
+        });
+    }
+
+    function updateCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        const monthDisplay = document.getElementById('currentMonth');
+        const headerCount = 7;
+        while (grid.children.length > headerCount) grid.removeChild(grid.lastChild);
+
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        monthDisplay.innerText = `${year}年 ${String(month + 1).padStart(2, '0')}月`;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDate = new Date(year, month, day);
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.onclick = () => openModal(currentDate);
+
+            if (currentDate.getTime() === today.getTime()) cell.classList.add('today-marker');
+
+            const shift = getShiftForDate(currentDate);
+            const info = getChineseDateInfo(currentDate);
+
+            let badgeHtml = info.showBadge ? `<div class="holiday-badge">休</div>` : '';
+            let lunarClass = '';
+            if (info.isHoliday) lunarClass = 'holiday-text';
+            else if (info.isSolarTerm) lunarClass = 'solar-term';
+
+            const shiftClass = `shift-${shift.name === '休息' ? '休息' : shift.name}`;
+            
+            cell.innerHTML = `
+                ${badgeHtml}
+                <div class="date-info">
+                    <span class="day-number">${day}</span>
+                    <span class="lunar-text ${lunarClass}">${info.label}</span>
+                </div>
+                <span class="shift-badge ${shiftClass}">${shift.name}</span>
+            `;
+            grid.appendChild(cell);
+        }
+
+        updateSequenceTags();
+    }
+
+    function openModal(date) {
+        selectedDateForEdit = new Date(date);
+        
+        const info = getChineseDateInfo(date);
+        document.getElementById('modalDate').textContent = `${date.getMonth()+1}月${date.getDate()}日`;
+        document.getElementById('modalLunar').textContent = `农历 ${info.label}`;
+
+        const currentShift = getShiftForDate(date);
+        selectedShiftIndex = SHIFT_SEQUENCE.findIndex(s => s.name === currentShift.name);
+
+        const optionsContainer = document.getElementById('shiftOptions');
+        optionsContainer.innerHTML = '';
+        SHIFT_SEQUENCE.forEach((item, index) => {
+            const btn = document.createElement('button');
+            btn.className = `option-btn ${index === selectedShiftIndex ? 'selected' : ''}`;
+            btn.onclick = () => selectShift(index);
+            btn.innerHTML = `
+                <span class="shift-name">${index + 1}. ${item.name}</span>
+                <span class="shift-time">${item.time || '无'}</span>
+            `;
+            optionsContainer.appendChild(btn);
+        });
+
+        const refInfo = document.getElementById('refInfo');
+        const refStr = `${currentRefDate.getFullYear()}-${currentRefDate.getMonth()+1}-${currentRefDate.getDate()}`;
+        refInfo.textContent = `基准点：${refStr} → ${SHIFT_SEQUENCE[currentRefIndex].name}`;
+
+        document.getElementById('sequenceInput').value = SHIFT_SEQUENCE.map(s => s.name).join(',');
+        
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    function selectShift(index) {
+        selectedShiftIndex = index;
+        const options = document.querySelectorAll('.option-btn');
+        options.forEach((opt, i) => {
+            opt.classList.toggle('selected', i === index);
+        });
+    }
+
+    function confirmShift() {
+        const diffDays = Math.round((selectedDateForEdit.getTime() - currentRefDate.getTime()) / 86400000);
+        const seqLen = SHIFT_SEQUENCE.length;
+        const currentIndex = ((currentRefIndex + diffDays) % seqLen + seqLen) % seqLen;
+        
+        const shiftDiff = selectedShiftIndex - currentIndex;
+        const newRefTime = currentRefDate.getTime() - (shiftDiff * 86400000);
+        currentRefDate = new Date(newRefTime);
+        currentRefDate.setHours(0, 0, 0, 0);
+        
+        currentRefIndex = selectedShiftIndex;
+        
+        updateCalendar();
+        closeModal();
+    }
+
+    function saveSequence() {
+        const input = document.getElementById('sequenceInput').value;
+        if (!input) return;
+        
+        const names = input.split(',').map(s => s.trim()).filter(s => s !== "");
+        if (names.length === 0) return;
+
+        const classes = ['seq-白班', 'seq-前夜', 'seq-休息', 'seq-后夜', 'seq-休息'];
+        
+        SHIFT_SEQUENCE = names.map((name, index) => ({
+            name: name,
+            time: '',
+            class: classes[index % classes.length]
+        }));
+
+        currentRefDate = new Date();
+        currentRefDate.setHours(0, 0, 0, 0);
+        currentRefIndex = 0;
+
+        updateCalendar();
+    }
+
+    function resetSystem() {
+        SHIFT_SEQUENCE = JSON.parse(JSON.stringify(DEFAULT_SEQUENCE));
+        document.getElementById('sequenceInput').value = SHIFT_SEQUENCE.map(s => s.name).join(',');
+        
+        currentRefDate = new Date();
+        currentRefDate.setHours(0, 0, 0, 0);
+        currentRefIndex = 0;
+        
+        updateCalendar();
+    }
+
+    function changeMonth(offset) {
+        viewDate.setMonth(viewDate.getMonth() + offset);
+        updateCalendar();
+    }
+
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+    });
+
+    window.onload = updateCalendar;
+</script>
+
+</body>
+</html>
