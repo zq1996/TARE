@@ -1,3 +1,0 @@
-This is a temporary file created for testing git push.
-Created on: 2026-03-14
-Testing successful git push to GitHub.
