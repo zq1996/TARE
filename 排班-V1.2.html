@@ -27,7 +27,7 @@
         body {
             min-height: 100vh;
             background: var(--bg-gradient);
-            display: flex; justify-content: center; align-items: flex-start; /* [修改] 移动端顶部对齐防止遮挡 */
+            display: flex; justify-content: center; align-items: center;
             padding: 10px;
         }
 
@@ -48,13 +48,36 @@
             border-bottom: 1px solid #f0f0f0;
         }
 
-        .current-month { font-size: 1.1rem; font-weight: 600; color: #1f2937; }
+        .current-month { font-size: 1.1rem; font-weight: 600; color: #1f2937; cursor: pointer; }
+        .current-month:hover { color: var(--primary); }
 
-        .nav-btn {
-            background: #f3f4f6; border: none;
+        .nav-btn { background: #f3f4f6; border: none;
             width: 36px; height: 36px; border-radius: 10px;
             cursor: pointer; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
+        }
+        /* 主页图标样式 */
+        .nav-btn-home { 
+            margin-right: 10px; 
+            background: var(--primary); 
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .nav-btn-home svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .calendar-grid {
@@ -98,6 +121,7 @@
         .day-number { font-size: 0.9rem; font-weight: 600; color: #374151; }
         .lunar-text { font-size: 0.6rem; color: #9ca3af; line-height: 1; }
         .holiday-text { color: var(--holiday-color); font-weight: 600; }
+        .solar-term-text { color: #8b5cf6; font-weight: 600; }
 
         .shift-badge {
             width: 90%; font-size: 0.6rem; padding: 2px 0;
@@ -108,7 +132,8 @@
         .shift-白班 { background: var(--color-day); }
         .shift-前夜 { background: var(--color-eve); }
         .shift-后夜 { background: var(--color-night); }
-        .shift-休息 { background: var(--color-rest); }
+        .shift-小休 { background: var(--color-rest); }
+        .shift-大休 { background: var(--color-rest); }
 
         .today-marker { border: 1.5px solid var(--primary) !important; background: #f5f7ff; }
 
@@ -144,14 +169,41 @@
         .action-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
         .btn-save { background: var(--primary); color: white; }
         .btn-reset { background: #f3f4f6; color: #374151; }
+
+        .year-picker, .month-picker, .picker-months {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .picker-months {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .picker-item {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .picker-item:hover { background: #f3f4f6; }
+        .picker-item.selected { background: var(--primary); color: white; border-color: var(--primary); }
     </style>
 </head>
 <body>
 
     <div class="calendar-card">
         <header class="calendar-header">
+            <!-- 主页按钮 -->
+            <button class="nav-btn-home" onclick="goBack()" title="主页">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </button>
             <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
-            <div id="currentMonth" class="current-month">2026年 02月</div>
+            <div id="currentMonth" class="current-month" onclick="openMonthPicker()">2026年 02月</div>
             <button class="nav-btn" onclick="changeMonth(1)">›</button>
         </header>
 
@@ -162,10 +214,23 @@
         </div>
 
         <div class="legend">
-            <div class="legend-item"><span class="dot" style="background:var(--color-day)"></span>白(8-16)</div>
-            <div class="legend-item"><span class="dot" style="background:var(--color-eve)"></span>前(16-24)</div>
-            <div class="legend-item"><span class="dot" style="background:var(--color-night)"></span>后(0-8)</div>
-            <div class="legend-item"><span class="dot" style="background:var(--color-rest)"></span>休息</div>
+            <div class="legend-item"><span class="dot" style="background:var(--color-day)"></span>白班</div>
+            <div class="legend-item"><span class="dot" style="background:var(--color-eve)"></span>前夜</div>
+            <div class="legend-item"><span class="dot" style="background:var(--color-night)"></span>后夜</div>
+            <div class="legend-item"><span class="dot" style="background:var(--color-rest)"></span>小休/大休</div>
+        </div>
+
+        <div id="monthPickerOverlay" class="modal-overlay" onclick="closeMonthPicker()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-section">
+                    <div class="calendar-header" style="padding: 10px 0;">
+                        <button class="nav-btn" onclick="pickerChangeYear(-1)">‹</button>
+                        <div id="pickerYearMonth" class="current-month">2026年</div>
+                        <button class="nav-btn" onclick="pickerChangeYear(1)">›</button>
+                    </div>
+                    <div class="picker-months" id="pickerMonths"></div>
+                </div>
+            </div>
         </div>
 
         <div id="modalOverlay" class="modal-overlay" onclick="closeModal()">
@@ -175,16 +240,16 @@
                     <div class="shift-options">
                         <button class="option-btn" onclick="setNewShift(0)">1.白班</button>
                         <button class="option-btn" onclick="setNewShift(1)">2.前夜</button>
-                        <button class="option-btn" onclick="setNewShift(2)">3.休息</button>
+                        <button class="option-btn" onclick="setNewShift(2)">3.小休</button>
                         <button class="option-btn" onclick="setNewShift(3)">4.后夜</button>
-                        <button class="option-btn" onclick="setNewShift(4)">5.休息</button>
+                        <button class="option-btn" onclick="setNewShift(4)">5.大休</button>
                     </div>
                 </div>
 
                 <div class="modal-section">
                     <div class="modal-title">修改默认倒班序列</div>
                     <div class="config-area">
-                        <input type="text" id="sequenceInput" class="sequence-input" value="白班,前夜,休息,后夜,休息">
+                        <input type="text" id="sequenceInput" class="sequence-input" value="白班,前夜,小休,后夜,大休">
                         <div class="btn-group">
                             <button class="action-btn btn-save" onclick="saveSequence()">应用新规则</button>
                             <button class="action-btn btn-reset" onclick="resetSystem()">重置系统</button>
@@ -204,7 +269,7 @@
          * 3. 移动端适配：CSS 部分使用了 Flex 布局和媒体查询解决重叠。
          */
 
-        let SHIFT_SEQUENCE = ['白班', '前夜', '休息', '后夜', '休息'];
+        let SHIFT_SEQUENCE = ['白班', '前夜', '小休', '后夜', '大休'];
         
         // 基准点：2026-02-27 是休息 (序列索引 2)
         let currentRefDate = new Date(2026, 1, 27); 
@@ -219,6 +284,52 @@
             "10-1": "国庆", "10-2": "国庆", "10-3": "国庆", "10-4": "国庆", "10-5": "国庆", "10-6": "国庆", "10-7": "国庆"
         };
 
+        const SOLAR_TERMS_NAMES = [
+            "小寒", "大寒", "立春", "雨水", "惊蛰", "春分",
+            "清明", "谷雨", "立夏", "小满", "芒种", "夏至",
+            "小暑", "大暑", "立秋", "处暑", "白露", "秋分",
+            "寒露", "霜降", "立冬", "小雪", "大雪", "冬至"
+        ];
+
+        function getSolarTermsForYear(year) {
+            const y = parseInt(("" + year).substr(2, 2));
+            const result = {};
+            const terms = [
+                { name: "小寒", m: 1, c: 5.4055 },
+                { name: "大寒", m: 1, c: 20.12 },
+                { name: "立春", m: 2, c: 3.87 },
+                { name: "雨水", m: 2, c: 18.73 },
+                { name: "惊蛰", m: 3, c: 5.63 },
+                { name: "春分", m: 3, c: 20.646 },
+                { name: "清明", m: 4, c: 4.81 },
+                { name: "谷雨", m: 4, c: 20.1 },
+                { name: "立夏", m: 5, c: 5.52 },
+                { name: "小满", m: 5, c: 21.04 },
+                { name: "芒种", m: 6, c: 5.678 },
+                { name: "夏至", m: 6, c: 21.37 },
+                { name: "小暑", m: 7, c: 7.108 },
+                { name: "大暑", m: 7, c: 22.83 },
+                { name: "立秋", m: 8, c: 7.5 },
+                { name: "处暑", m: 8, c: 23.13 },
+                { name: "白露", m: 9, c: 7.646 },
+                { name: "秋分", m: 9, c: 23.042 },
+                { name: "寒露", m: 10, c: 8.318 },
+                { name: "霜降", m: 10, c: 23.438 },
+                { name: "立冬", m: 11, c: 7.438 },
+                { name: "小雪", m: 11, c: 22.36 },
+                { name: "大雪", m: 12, c: 7.18 },
+                { name: "冬至", m: 12, c: 21.94 }
+            ];
+            for (let i = 0; i < terms.length; i++) {
+                const t = terms[i];
+                const day = Math.floor(y * 0.2422 + t.c) - Math.floor(y / 4);
+                result[`${t.m}-${day}`] = t.name;
+            }
+            return result;
+        }
+
+        let currentYearSolarTerms = {};
+
         const LUNAR_CHARS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
         function getChineseDateInfo(date) {
@@ -229,6 +340,7 @@
             let lunarString = formatter.format(date).replace(/.*年/, '').trim();
             
             if (HOLIDAYS_2026[key]) return { label: HOLIDAYS_2026[key], isHoliday: true, showBadge: true };
+            if (currentYearSolarTerms[key]) return { label: currentYearSolarTerms[key], isSolarTerm: true };
             if (lunarString.includes('初一')) return { label: lunarString.replace('初一', ''), isHoliday: false };
             
             let dayNumMatch = lunarString.match(/\d+/);
@@ -278,15 +390,18 @@
 
                 const info = getChineseDateInfo(currentDate);
                 let badgeHtml = info.showBadge ? `<div class="holiday-badge">休</div>` : '';
+                let lunarClass = '';
+                if (info.isHoliday) lunarClass = 'holiday-text';
+                else if (info.isSolarTerm) lunarClass = 'solar-term-text';
 
                 // [修改] 优化内部 HTML 结构，适应手机显示宽度
                 cell.innerHTML = `
                     ${badgeHtml}
                     <div class="date-info">
                         <span class="day-number">${day}</span>
-                        <span class="lunar-text ${info.isHoliday ? 'holiday-text' : ''}">${info.label}</span>
+                        <span class="lunar-text ${lunarClass}">${info.label}</span>
                     </div>
-                    <span class="shift-badge shift-${shiftName.includes('休息') ? '休息' : shiftName}">${shiftName}</span>
+                    <span class="shift-badge shift-${shiftName.includes('小休') || shiftName.includes('大休') ? '小休' : shiftName}">${shiftName}</span>
                 `;
                 grid.appendChild(cell);
             }
@@ -316,8 +431,8 @@
         }
 
         function resetSystem() {
-            SHIFT_SEQUENCE = ['白班', '前夜', '休息', '后夜', '休息'];
-            document.getElementById('sequenceInput').value = "白班,前夜,休息,后夜,休息";
+            SHIFT_SEQUENCE = ['白班', '前夜', '小休', '后夜', '大休'];
+            document.getElementById('sequenceInput').value = "白班,前夜,小休,后夜,大休";
             currentRefDate = new Date(2026, 1, 27);
             currentRefIndex = 2;
             updateCalendar();
@@ -326,10 +441,55 @@
 
         function changeMonth(offset) {
             viewDate.setMonth(viewDate.getMonth() + offset);
+            const newYear = viewDate.getFullYear();
+            currentYearSolarTerms = getSolarTermsForYear(newYear);
             updateCalendar();
         }
 
-        window.onload = updateCalendar;
+        function openMonthPicker() {
+            renderPickerMonths();
+            document.getElementById('monthPickerOverlay').style.display = 'flex';
+        }
+
+        function pickerChangeYear(offset) {
+            viewDate.setFullYear(viewDate.getFullYear() + offset);
+            renderPickerMonths();
+        }
+
+        function renderPickerMonths() {
+            const pickerYearMonth = document.getElementById('pickerYearMonth');
+            const pickerMonths = document.getElementById('pickerMonths');
+            const currentYear = viewDate.getFullYear();
+            const currentMonth = viewDate.getMonth() + 1;
+            
+            pickerYearMonth.innerText = `${currentYear}年`;
+            
+            let monthsHtml = '';
+            for (let m = 1; m <= 12; m++) {
+                monthsHtml += `<div class="picker-item ${m === currentMonth ? 'selected' : ''}" onclick="selectMonth(${m})">${m}月</div>`;
+            }
+            pickerMonths.innerHTML = monthsHtml;
+        }
+
+        function selectMonth(month) {
+            viewDate.setMonth(month - 1);
+            currentYearSolarTerms = getSolarTermsForYear(viewDate.getFullYear());
+            updateCalendar();
+            closeMonthPicker();
+        }
+
+        function closeMonthPicker() {
+            document.getElementById('monthPickerOverlay').style.display = 'none';
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        window.onload = function() {
+            currentYearSolarTerms = getSolarTermsForYear(new Date().getFullYear());
+            updateCalendar();
+        };
     </script>
 </body>
 </html>
