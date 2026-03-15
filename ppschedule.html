@@ -342,7 +342,7 @@
             for (let i = 0; i < terms.length; i++) {
                 const t = terms[i];
                 const day = Math.floor(y * 0.2422 + t.c) - Math.floor(y / 4);
-                result[`${t.m}-${day}`] = t.name;
+                result[`${String(t.m).padStart(2, '0')}-${String(day).padStart(2, '0')}`] = t.name;
             }
             return result;
         }
@@ -350,10 +350,30 @@
         let currentYearSolarTerms = {};
         let currentYearHolidays = {};
 
-        // 农历日期字符：一到十，用于组成初二、初三...初十
         const LUNAR_CHARS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
-        // 农历月份名称：正月代表一月，冬月是十一月，腊月是十二月
         const LUNAR_MONTHS = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
+
+        const LUNAR_LEGAL_HOLIDAYS = {
+            "1-1": "春节",
+            "5-5": "端午节",
+            "8-15": "中秋节"
+        };
+
+        const LUNAR_FESTIVALS = {
+            "1-15": "元宵节",
+            "2-2": "龙抬头",
+            "7-7": "七夕节",
+            "7-15": "中元节",
+            "9-9": "重阳节",
+            "12-8": "腊八节",
+            "12-23": "小年"
+        };
+
+        const SOLAR_HOLIDAYS = {
+            "01-01": "元旦",
+            "05-01": "劳动节",
+            "10-01": "国庆节"
+        };
 
         /**
          * 获取日期的农历信息
@@ -387,22 +407,47 @@
             // 处理闰月：如果月份大于12，表示闰月
             // 闰月返回格式如 13表示闰正月，14表示闰二月等
             
-            // 1. 先检查公历节日（优先级最高）
-            // 根据年份选择对应的节日数据
+            // 1. 先检查公历节日（优先级最高，包括元旦、五一、清明、国庆等）
+            if (SOLAR_HOLIDAYS[key]) return { label: SOLAR_HOLIDAYS[key], isHoliday: true, showBadge: true };
             const holidays = currentYearHolidays;
             if (holidays[key]) return { label: holidays[key], isHoliday: true, showBadge: true };
             
-            // 2. 检查二十四节气
-            if (currentYearSolarTerms[key]) return { label: currentYearSolarTerms[key], isSolarTerm: true };
+            // 2. 检查二十四节气（包括清明节）
+            if (currentYearSolarTerms[key]) {
+                const termName = currentYearSolarTerms[key];
+                if (termName === "清明") {
+                    return { label: termName, isSolarTerm: true, isHoliday: true, showBadge: true };
+                }
+                return { label: termName, isSolarTerm: true };
+            }
             
-            // 3. 判断是否是农历每月初一（农历月的第一天）
+            // 3. 检查除夕（农历最后一天）
+            const lunarYear = lunar.getYear();
+            const nextDaySolar = Solar.fromYmd(date.getFullYear(), m, d).next(1);
+            const nextDayLunar = nextDaySolar.getLunar();
+            if (nextDayLunar.getMonth() === 1 && nextDayLunar.getDay() === 1) {
+                return { label: "除夕", isHoliday: true, showBadge: true };
+            }
+            
+            // 3. 检查农历法定假日（春节、端午、中秋），显示"休"标识
+            const lunarFestivalKey = `${lunarMonth}-${lunarDay}`;
+            if (LUNAR_LEGAL_HOLIDAYS[lunarFestivalKey]) {
+                return { label: LUNAR_LEGAL_HOLIDAYS[lunarFestivalKey], isHoliday: true, showBadge: true };
+            }
+            
+            // 4. 检查传统节日（元宵、龙抬头、七夕等），不显示"休"标识
+            if (LUNAR_FESTIVALS[lunarFestivalKey]) {
+                return { label: LUNAR_FESTIVALS[lunarFestivalKey], isHoliday: false };
+            }
+            
+            // 5. 判断是否是农历每月初一（农历月的第一天）
             // 如果日期为1，表示是农历每月第一天
             if (lunarDay === 1 && lunarMonth >= 1 && lunarMonth <= 12) {
                 // 根据农历月份数字（1-12）返回对应的农历月份名称
                 return { label: LUNAR_MONTHS[lunarMonth - 1], isHoliday: false };
             }
             
-            // 4. 处理农历其他日期（初二到三十）
+            // 6. 处理农历其他日期（初二到三十）
             let n = lunarDay;
             let label = "";
             // 初一~初十：初+一二三四五六七八九十
