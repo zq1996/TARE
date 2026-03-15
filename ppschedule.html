@@ -279,12 +279,29 @@
 
         let viewDate = new Date(); 
         let selectedDateForEdit = null;
-
-        const HOLIDAYS_2026 = {
-            "1-1": "元旦", "2-17": "春节", "2-18": "春节", "2-19": "春节", "2-20": "春节", "2-21": "春节", "2-22": "春节", "2-23": "春节", "2-24": "春节",
-            "4-5": "清明", "5-1": "劳动节", "5-2": "休息", "5-3": "休息", "5-4": "休息", "5-5": "休息", "6-19": "端午", "9-25": "中秋",
-            "10-1": "国庆", "10-2": "国庆", "10-3": "国庆", "10-4": "国庆", "10-5": "国庆", "10-6": "国庆", "10-7": "国庆"
-        };
+        
+        const holidayCache = {};
+        
+        async function fetchHolidaysForYear(year) {
+            if (holidayCache[year]) return holidayCache[year];
+            try {
+                const response = await fetch(`http://timor.tech/api/holiday/year/${year}`);
+                const data = await response.json();
+                if (data.code === 0 && data.holiday) {
+                    const holidays = {};
+                    for (const [dateKey, holidayInfo] of Object.entries(data.holiday)) {
+                        if (holidayInfo.holiday) {
+                            holidays[dateKey] = holidayInfo.name;
+                        }
+                    }
+                    holidayCache[year] = holidays;
+                    return holidays;
+                }
+            } catch (e) {
+                console.error('获取节假日数据失败:', e);
+            }
+            return {};
+        }
 
         const SOLAR_TERMS_NAMES = [
             "小寒", "大寒", "立春", "雨水", "惊蛰", "春分",
@@ -331,6 +348,7 @@
         }
 
         let currentYearSolarTerms = {};
+        let currentYearHolidays = {};
 
         // 农历日期字符：一到十，用于组成初二、初三...初十
         const LUNAR_CHARS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
@@ -352,8 +370,8 @@
             // 获取公历的月和日，用于查询公历节日
             const m = date.getMonth() + 1;
             const d = date.getDate();
-            // 构造公历节日查询键，如 "2-17" 表示2月17日
-            const key = `${m}-${d}`;
+            // 构造公历节日查询键，如 "02-17" 表示2月17日（API返回格式带前导零）
+            const key = `${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             
             // 使用 lunar-javascript 库获取准确的农历信息
             // Solar.fromYmd(year, month, day) 创建公历日期
@@ -371,8 +389,7 @@
             
             // 1. 先检查公历节日（优先级最高）
             // 根据年份选择对应的节日数据
-            const year = date.getFullYear();
-            const holidays = year === 2026 ? HOLIDAYS_2026 : {};
+            const holidays = currentYearHolidays;
             if (holidays[key]) return { label: holidays[key], isHoliday: true, showBadge: true };
             
             // 2. 检查二十四节气
@@ -488,7 +505,20 @@
             viewDate.setMonth(viewDate.getMonth() + offset);
             const newYear = viewDate.getFullYear();
             currentYearSolarTerms = getSolarTermsForYear(newYear);
-            updateCalendar();
+            loadYearHolidays(newYear).then(() => updateCalendar());
+        }
+        
+        async function loadYearHolidays(year) {
+            if (!holidayCache[year]) {
+                const holidays = await fetchHolidaysForYear(year);
+                if (year === viewDate.getFullYear()) {
+                    currentYearHolidays = holidays;
+                }
+            } else {
+                if (year === viewDate.getFullYear()) {
+                    currentYearHolidays = holidayCache[year];
+                }
+            }
         }
 
         function openMonthPicker() {
@@ -498,6 +528,8 @@
 
         function pickerChangeYear(offset) {
             viewDate.setFullYear(viewDate.getFullYear() + offset);
+            const newYear = viewDate.getFullYear();
+            loadYearHolidays(newYear);
             renderPickerMonths();
         }
 
@@ -518,9 +550,12 @@
 
         function selectMonth(month) {
             viewDate.setMonth(month - 1);
-            currentYearSolarTerms = getSolarTermsForYear(viewDate.getFullYear());
-            updateCalendar();
-            closeMonthPicker();
+            const newYear = viewDate.getFullYear();
+            currentYearSolarTerms = getSolarTermsForYear(newYear);
+            loadYearHolidays(newYear).then(() => {
+                updateCalendar();
+                closeMonthPicker();
+            });
         }
 
         function closeMonthPicker() {
@@ -532,8 +567,9 @@
         }
 
         window.onload = function() {
-            currentYearSolarTerms = getSolarTermsForYear(new Date().getFullYear());
-            updateCalendar();
+            const currentYear = new Date().getFullYear();
+            currentYearSolarTerms = getSolarTermsForYear(currentYear);
+            loadYearHolidays(currentYear).then(() => updateCalendar());
         };
     </script>
 </body>
