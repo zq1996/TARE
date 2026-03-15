@@ -193,6 +193,8 @@
         .picker-item:hover { background: #f3f4f6; }
         .picker-item.selected { background: var(--primary); color: white; border-color: var(--primary); }
     </style>
+    <!-- 引入农历计算库（本地） -->
+    <script src="js/lunar.min.js"></script>
 </head>
 <body>
 
@@ -330,32 +332,75 @@
 
         let currentYearSolarTerms = {};
 
+        // 农历日期字符：一到十，用于组成初二、初三...初十
         const LUNAR_CHARS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+        // 农历月份名称：正月代表一月，冬月是十一月，腊月是十二月
+        const LUNAR_MONTHS = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
 
+        /**
+         * 获取日期的农历信息
+         * @param {Date} date - 要查询的日期对象
+         * @returns {Object} - 包含 label(显示文字), isHoliday(是否节日), showBadge(是否显示休字标签) 
+         * 
+         * 显示规则：
+         * - 农历每月初一：显示当前农历月份（如正月、二月...腊月）
+         * - 农历其他日期：显示日期序数（如初二、初三...三十）
+         * - 公历节日：显示节日名称并显示"休"标签
+         * - 二十四节气：显示节气名称
+         */
         function getChineseDateInfo(date) {
+            // 获取公历的月和日，用于查询公历节日
             const m = date.getMonth() + 1;
             const d = date.getDate();
+            // 构造公历节日查询键，如 "2-17" 表示2月17日
             const key = `${m}-${d}`;
-            const formatter = new Intl.DateTimeFormat('zh-u-ca-chinese', { day: 'numeric', month: 'long' });
-            let lunarString = formatter.format(date).replace(/.*年/, '').trim();
             
-            if (HOLIDAYS_2026[key]) return { label: HOLIDAYS_2026[key], isHoliday: true, showBadge: true };
+            // 使用 lunar-javascript 库获取准确的农历信息
+            // Solar.fromYmd(year, month, day) 创建公历日期
+            // getLunar() 获取对应的农历日期
+            const solar = Solar.fromYmd(date.getFullYear(), m, d);
+            const lunar = solar.getLunar();
+            
+            // 农历月份（1-12，1=正月，11=冬月，12=腊月，13=闰正月...）
+            const lunarMonth = lunar.getMonth();
+            // 农历日期（1-30）
+            const lunarDay = lunar.getDay();
+            
+            // 处理闰月：如果月份大于12，表示闰月
+            // 闰月返回格式如 13表示闰正月，14表示闰二月等
+            
+            // 1. 先检查公历节日（优先级最高）
+            // 根据年份选择对应的节日数据
+            const year = date.getFullYear();
+            const holidays = year === 2026 ? HOLIDAYS_2026 : {};
+            if (holidays[key]) return { label: holidays[key], isHoliday: true, showBadge: true };
+            
+            // 2. 检查二十四节气
             if (currentYearSolarTerms[key]) return { label: currentYearSolarTerms[key], isSolarTerm: true };
-            if (lunarString.includes('初一')) return { label: lunarString.replace('初一', ''), isHoliday: false };
             
-            let dayNumMatch = lunarString.match(/\d+/);
-            if (dayNumMatch) {
-                let n = parseInt(dayNumMatch[0]);
-                let label = "";
-                if (n < 11) label = "初" + LUNAR_CHARS[n-1];
-                else if (n === 10) label = "初十";
-                else if (n < 20) label = "十" + LUNAR_CHARS[n-11];
-                else if (n === 20) label = "二十";
-                else if (n < 30) label = "廿" + LUNAR_CHARS[n-21];
-                else if (n === 30) label = "三十";
-                return { label: label, isHoliday: false };
+            // 3. 判断是否是农历每月初一（农历月的第一天）
+            // 如果日期为1，表示是农历每月第一天
+            if (lunarDay === 1 && lunarMonth >= 1 && lunarMonth <= 12) {
+                // 根据农历月份数字（1-12）返回对应的农历月份名称
+                return { label: LUNAR_MONTHS[lunarMonth - 1], isHoliday: false };
             }
-            return { label: lunarString, isHoliday: false };
+            
+            // 4. 处理农历其他日期（初二到三十）
+            let n = lunarDay;
+            let label = "";
+            // 初一~初十：初+一二三四五六七八九十
+            if (n < 11) label = "初" + LUNAR_CHARS[n-1];
+            // 初十
+            else if (n === 10) label = "初十";
+            // 十一~十九：十+一二三四五六七八九
+            else if (n < 20) label = "十" + LUNAR_CHARS[n-11];
+            // 二十
+            else if (n === 20) label = "二十";
+            // 廿一~廿九：廿+一二三四五六七八九
+            else if (n < 30) label = "廿" + LUNAR_CHARS[n-21];
+            // 三十
+            else if (n === 30) label = "三十";
+            return { label: label, isHoliday: false };
         }
 
         function updateCalendar() {
