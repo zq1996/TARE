@@ -69,6 +69,7 @@ async function searchMukaku(keyword, results) {
 
     try {
         const searchUrl = `https://web5.mukaku.com/prod/api/v1/getVideoList?sb=${encodeURIComponent(keyword)}&page=1&limit=24&app_id=${APP_ID}&identity=${IDENTITY}`;
+        console.log('searchUrl:', searchUrl);
         
         const response = await axios.get(searchUrl, {
             timeout: 15000,
@@ -79,6 +80,10 @@ async function searchMukaku(keyword, results) {
                 'Accept-Language': 'zh_CN'
             }
         });
+
+        console.log('response status:', response.status);
+        console.log('response data success:', response.data.success);
+        console.log('response data count:', response.data.data?.data?.length || 0);
 
         const data = response.data;
 
