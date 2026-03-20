@@ -11,6 +11,10 @@ export default async function handler(req, res) {
 
     const pathname = req.url.split('?')[0];
 
+    console.log('Vercel - req.url:', req.url);
+    console.log('Vercel - pathname:', pathname);
+    console.log('Vercel - keyword:', keyword);
+
     if (pathname === '/api/search' || req.query.path === 'search' || req.path === '/search') {
         if (!keyword) {
             return res.status(400).json({ success: false, message: '请输入搜索关键词' });
