@@ -89,28 +89,48 @@ async function searchMukaku(keyword, results) {
         });
 
         console.log('response status:', response.status);
-        console.log('response data success:', response.data.success);
-        console.log('response data count:', response.data.data?.data?.length || 0);
+        console.log('response data:', JSON.stringify(response.data).substring(0, 500));
 
         const data = response.data;
 
-        if (data.success && data.data && data.data.data) {
-            data.data.data.forEach(item => {
-                results.push({
-                    id: item.idcode || item.id || '',
-                    title: item.title || '未知标题',
-                    poster: item.image || '',
-                    desc: item.abstract || item.alias || '',
-                    size: item.definition || '',
-                    url: `https://web5.mukaku.com/mv/${item.idcode}`,
-                    type: 'magnet',
-                    source: 'web5.mukaku.com',
-                    doubanScore: item.doub_score || '',
-                    year: item.years || '',
-                    quality: item.zqxd || ''
-                });
-            });
+        console.log('data.success:', data.success);
+        console.log('data.data exists:', !!data.data);
+        console.log('data.data type:', typeof data.data);
+        if (data.data) {
+            console.log('data.data keys:', Object.keys(data.data));
+            console.log('data.data.data exists:', !!data.data.data);
         }
+
+        let items = [];
+        if (data.success && data.data) {
+            if (data.data.data && Array.isArray(data.data.data)) {
+                items = data.data.data;
+            } else if (data.data.list && Array.isArray(data.data.list)) {
+                items = data.data.list;
+            } else if (data.data.result && Array.isArray(data.data.result)) {
+                items = data.data.result;
+            } else if (data.data.videos && Array.isArray(data.data.videos)) {
+                items = data.data.videos;
+            }
+        }
+
+        console.log('Found items count:', items.length);
+
+        items.forEach(item => {
+            results.push({
+                id: item.idcode || item.id || '',
+                title: item.title || '未知标题',
+                poster: item.image || '',
+                desc: item.abstract || item.alias || '',
+                size: item.definition || '',
+                url: `https://web5.mukaku.com/mv/${item.idcode}`,
+                type: 'magnet',
+                source: 'web5.mukaku.com',
+                doubanScore: item.doub_score || '',
+                year: item.years || '',
+                quality: item.zqxd || ''
+            });
+        });
     } catch (error) {
         console.log('Mukaku search error:', error.message);
     }
