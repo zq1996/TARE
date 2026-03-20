@@ -33,7 +33,9 @@ const server = http.createServer(async (req, res) => {
 
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
-    const { keyword, id } = parsedUrl.query;
+    const query = parsedUrl.query;
+    const keyword = query.keyword ? decodeURIComponent(query.keyword) : undefined;
+    const id = query.id ? decodeURIComponent(query.id) : undefined;
 
     if (pathname === '/api/search') {
         if (!keyword) {
