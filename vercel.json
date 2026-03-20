@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "builds": [
     {
       "src": "api/search.js",
@@ -7,8 +8,16 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/search",
       "dest": "/api/search.js"
+    },
+    {
+      "src": "/api/detail",
+      "dest": "/api/search.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
