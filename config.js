@@ -3,7 +3,7 @@ const Config = {
         apiBase: 'http://localhost:3000'
     },
     production: {
-        apiBase: 'https://taretool.vercel.app'
+        apiBase: 'https://taretool-git-ppschedule-zq1996s-projects.vercel.app'
     },
     getCurrent() {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
