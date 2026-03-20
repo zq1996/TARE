@@ -1,100 +1,128 @@
 export default async function handler(req, res) {
-    const { keyword } = req.query;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (!keyword) {
-        return res.status(400).json({ success: false, message: '请输入搜索关键词' });
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
     }
 
-    const results = [];
+    const { keyword, id } = req.query;
 
-    try {
-        await Promise.all([
-            searchMukaku(keyword, results),
-            searchYunso(keyword, results)
-        ]);
+    if (req.query.path === 'search' || req.path === '/search') {
+        if (!keyword) {
+            return res.status(400).json({ success: false, message: '请输入搜索关键词' });
+        }
 
-        res.json({
-            success: true,
-            results: results.slice(0, 30)
-        });
-    } catch (error) {
-        console.error('Search error:', error);
-        res.json({
-            success: true,
-            results: results.slice(0, 30)
-        });
+        const results = [];
+
+        try {
+            await searchMukaku(keyword, results);
+
+            return res.json({
+                success: true,
+                results: results.slice(0, 30)
+            });
+        } catch (error) {
+            console.error('Search error:', error.message);
+            return res.json({
+                success: true,
+                results: results.slice(0, 30)
+            });
+        }
     }
+
+    if (req.query.path === 'detail' || req.path === '/detail' || (id && !keyword)) {
+        if (!id) {
+            return res.status(400).json({ success: false, message: '请输入视频ID' });
+        }
+
+        try {
+            const result = await getVideoDetail(id);
+            return res.json({
+                success: true,
+                result: result
+            });
+        } catch (error) {
+            console.error('Detail error:', error.message);
+            return res.json({
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+    return res.status(404).json({ success: false, message: 'Not Found' });
 }
 
 async function searchMukaku(keyword, results) {
     const axios = require('axios');
-    const cheerio = require('cheerio');
+
+    const APP_ID = '83768d9ad4';
+    const IDENTITY = '23734adac0301bccdcb107c4aa21f96c';
 
     try {
-        const searchUrl = `https://web5.mukaku.com/index.php/vod/search.html?searchword=${encodeURIComponent(keyword)}`;
+        const searchUrl = `https://web5.mukaku.com/prod/api/v1/getVideoList?sb=${encodeURIComponent(keyword)}&page=1&limit=24&app_id=${APP_ID}&identity=${IDENTITY}`;
+        
         const response = await axios.get(searchUrl, {
-            timeout: 10000,
+            timeout: 15000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://web5.mukaku.com/'
-            }
-        });
-
-        const $ = cheerio.load(response.data);
-
-        $('.module-item').each((i, el) => {
-            if (i >= 15) return;
-
-            const title = $(el).find('.module-item-title a').text().trim();
-            const url = 'https://web5.mukaku.com' + $(el).find('.module-item-title a').attr('href');
-            const poster = $(el).find('.module-item-cover .module-item-pic img').attr('data-src') || 
-                          $(el).find('.module-item-cover .module-item-pic img').attr('src');
-
-            results.push({
-                title: title || '未知标题',
-                poster: poster || '',
-                desc: '',
-                size: '',
-                url: url,
-                type: 'magnet',
-                source: 'web5.mukaku.com'
-            });
-        });
-    } catch (error) {
-        console.log('Mukaku search error:', error.message);
-    }
-}
-
-async function searchYunso(keyword, results) {
-    const axios = require('axios');
-    const cheerio = require('cheerio');
-
-    try {
-        const searchUrl = `https://www.yunso.net/index.php?s=/api/index/search&wd=${encodeURIComponent(keyword)}`;
-        const response = await axios.get(searchUrl, {
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://www.yunso.net/'
+                'Referer': 'https://web5.mukaku.com/search',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'zh_CN'
             }
         });
 
         const data = response.data;
 
-        if (data && data.code === 1 && data.result) {
-            data.result.slice(0, 15).forEach(item => {
+        if (data.success && data.data && data.data.data) {
+            data.data.data.forEach(item => {
                 results.push({
-                    title: item.title || item.name || '未知标题',
-                    poster: item.pic || '',
-                    desc: item.info || '',
-                    size: item.size || '',
-                    url: item.url || item.link || '',
-                    type: 'pan',
-                    source: 'yunso.net'
+                    id: item.idcode || item.id || '',
+                    title: item.title || '未知标题',
+                    poster: item.image || '',
+                    desc: item.abstract || item.alias || '',
+                    size: item.definition || '',
+                    url: `https://web5.mukaku.com/mv/${item.idcode}`,
+                    type: 'magnet',
+                    source: 'web5.mukaku.com',
+                    doubanScore: item.doub_score || '',
+                    year: item.years || '',
+                    quality: item.zqxd || ''
                 });
             });
         }
     } catch (error) {
-        console.log('Yunso search error:', error.message);
+        console.log('Mukaku search error:', error.message);
+    }
+}
+
+async function getVideoDetail(id) {
+    const axios = require('axios');
+
+    const APP_ID = '83768d9ad4';
+    const IDENTITY = '23734adac0301bccdcb107c4aa21f96c';
+
+    try {
+        const detailUrl = `https://web5.mukaku.com/prod/api/v1/getVideoDetail?id=${id}&app_id=${APP_ID}&identity=${IDENTITY}`;
+        
+        const response = await axios.get(detailUrl, {
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': `https://web5.mukaku.com/mv/${id}`,
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'zh_CN'
+            }
+        });
+
+        if (response.data.success && response.data.data) {
+            return response.data.data;
+        }
+        return null;
+    } catch (error) {
+        console.log('Mukaku detail error:', error.message);
+        throw error;
     }
 }

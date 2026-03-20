@@ -260,7 +260,7 @@
             resultsDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>正在搜索资源...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}`);
+                const response = await fetch(`${API_BASE}/api/search?keyword=${encodeURIComponent(keyword)}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -294,15 +294,24 @@
                     <img class="result-poster" src="${item.poster || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgMjAwIDMwMCI+PHJlY3Qg fill="#ddd" /><text x="50%" y="50%" fill="#999" text-anchor="middle" dy=".3em" font-size="20">暂无图片</text></svg>'}" alt="${item.title}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9udC1zaXplPSIyMCI+5pqC5peg5raI5Y+j55SoPC90ZXh0Pjwvc3ZnPg=='">
                     <div class="result-info">
                         <div class="result-title">${item.title}</div>
+                        <div class="result-meta">
+                            <span class="result-score">🎯 ${item.doubanScore || '-'}</span>
+                            <span class="result-year">${item.year || '-'}</span>
+                            <span class="result-quality">${item.quality || item.size || 'HD'}</span>
+                        </div>
                         <div class="result-desc">${item.desc || '暂无简介'}</div>
                         <div class="result-meta">
-                            <span class="result-size">${item.size || '未知大小'}</span>
+                            <span class="result-size">${item.source || ''}</span>
                             <span class="result-type ${item.type}">${item.type === 'magnet' ? '种子' : '网盘'}</span>
                         </div>
-                        <button class="download-btn" onclick="copyToClipboard('${item.url}')">${item.type === 'magnet' ? '复制磁力链接' : '复制网盘链接'}</button>
+                        <button class="download-btn" onclick="goToDetail('${item.id}')">查看详情</button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function goToDetail(id) {
+            window.location.href = 'detail.html?id=' + id;
         }
 
         async function copyToClipboard(text) {

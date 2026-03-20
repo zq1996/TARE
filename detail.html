@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影视详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        h1 {
+            color: white;
+            font-size: 1.8rem;
+        }
+        .detail-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .detail-header {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        .detail-poster {
+            width: 200px;
+            height: 280px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #f0f0f0;
+        }
+        .detail-info {
+            flex: 1;
+            min-width: 300px;
+            padding: 0 20px;
+        }
+        .detail-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .detail-subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .meta-tag {
+            padding: 5px 12px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .meta-tag.score {
+            background: #667eea;
+            color: white;
+        }
+        .meta-tag.imdb {
+            background: #f59e0b;
+            color: white;
+        }
+        .detail-desc {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        .detail-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .resource-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .resource-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .resource-item:hover {
+            background: #f0f0f0;
+        }
+        .resource-info {
+            flex: 1;
+        }
+        .resource-name {
+            font-size: 0.95rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .resource-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: #999;
+        }
+        .resource-quality {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: white;
+            background: #10b981;
+        }
+        .resource-quality.web-4k { background: #e11d48; }
+        .resource-quality.web-1080p { background: #10b981; }
+        .resource-quality.bluray { background: #6366f1; }
+        .download-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+        .download-btn:hover {
+            background: #5a6fd6;
+        }
+        .download-btn.magnet {
+            background: #10b981;
+        }
+        .download-btn.magnet:hover {
+            background: #059669;
+        }
+        .loading, .error {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 1.1rem;
+        }
+        .error {
+            color: #f59e0b;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="movie-search.html" class="back-btn">←</a>
+            <h1>🎬 影视详情</h1>
+        </div>
+
+        <div id="detail" class="detail-card">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                正在加载详情...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://tare-project-9lhfuixbh-zq1996s-projects.vercel.app';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoId = urlParams.get('id');
+
+        if (!videoId) {
+            document.getElementById('detail').innerHTML = '<div class="error">缺少视频ID参数</div>';
+        } else {
+            loadDetail(videoId);
+        }
+
+        async function loadDetail(id) {
+            try {
+                const response = await fetch(`${API_BASE}/api/detail?id=${id}`);
+                const data = await response.json();
+
+                if (data.success && data.result) {
+                    renderDetail(data.result);
+                } else {
+                    document.getElementById('detail').innerHTML = `<div class="error">加载失败: ${data.message || '未知错误'}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('detail').innerHTML = '<div class="error">请求失败，请检查网络连接</div>';
+            }
+        }
+
+        function renderDetail(item) {
+            const ecca = item.ecca || {};
+            const resources = [];
+            
+            if (ecca['WEB-4K']) resources.push(...ecca['WEB-4K']);
+            if (ecca['WEB-1080P']) resources.push(...ecca['WEB-1080P']);
+            if (ecca['蓝光原盘']) resources.push(...ecca['蓝光原盘']);
+            if (ecca['1080P蓝光']) resources.push(...ecca['1080P蓝光']);
+
+            const html = `
+                <div class="detail-header">
+                    <img class="detail-poster" src="${item.image || ''}" alt="${item.title}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9ntC1zaXplPSIyMCI+5pqC5peg5raI5Y+j55SoPC90ZXh0Pjwvc3ZnPg=='">
+                    <div class="detail-info">
+                        <div class="detail-title">${item.title}</div>
+                        <div class="detail-subtitle">${item.otitle || ''} ${item.alias ? '(' + item.alias + ')' : ''}</div>
+                        <div class="detail-meta">
+                            <span class="meta-tag score">豆瓣 ${item.doub_score || '-'}</span>
+                            <span class="meta-tag imdb">IMDb ${item.IMDB_score || '-'}</span>
+                            <span class="meta-tag">${item.years || '-'}</span>
+                            <span class="meta-tag">${item.production_area || '-'}</span>
+                            <span class="meta-tag">${item.long_time || '-'}</span>
+                        </div>
+                        <div class="detail-meta">
+                            <span class="meta-tag">导演: ${item.director || '-'}</span>
+                        </div>
+                        <div class="detail-meta">
+                            <span class="meta-tag">主演: ${item.performer ? (item.performer.substring(0, 50) + '...') : '-'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="section-title">剧情简介</div>
+                    <div class="detail-desc">${item.abstract || '暂无简介'}</div>
+                </div>
+                <div class="detail-section">
+                    <div class="section-title">下载资源 (${resources.length}个)</div>
+                    <div class="resource-list">
+                        ${resources.length > 0 ? resources.slice(0, 20).map(r => `
+                            <div class="resource-item">
+                                <div class="resource-info">
+                                    <div class="resource-name">${r.zname || '未知'}</div>
+                                    <div class="resource-meta">
+                                        <span>${r.zsize || ''}</span>
+                                        <span>${r.ezt || ''}</span>
+                                    </div>
+                                </div>
+                                <span class="resource-quality ${getQualityClass(r.zqxd)}">${r.zqxd || ''}</span>
+                                <button class="download-btn magnet" onclick="copyToClipboard('${r.zlink || ''}')">复制磁力</button>
+                            </div>
+                        `).join('') : '<div style="color:#999;padding:20px;">暂无资源</div>'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('detail').innerHTML = html;
+        }
+
+        function getQualityClass(quality) {
+            if (quality && quality.includes('4K')) return 'web-4k';
+            if (quality && quality.includes('1080P')) return 'web-1080p';
+            if (quality && quality.includes('蓝光')) return 'bluray';
+            return '';
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('磁力链接已复制到剪贴板！');
+            } catch {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('磁力链接已复制到剪贴板！');
+            }
+        }
+    </script>
+</body>
+</html>
