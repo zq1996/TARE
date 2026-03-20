@@ -9,7 +9,9 @@ export default async function handler(req, res) {
 
     const { keyword, id } = req.query;
 
-    if (req.query.path === 'search' || req.path === '/search') {
+    const pathname = req.url.split('?')[0];
+
+    if (pathname === '/api/search' || req.query.path === 'search' || req.path === '/search') {
         if (!keyword) {
             return res.status(400).json({ success: false, message: '请输入搜索关键词' });
         }
@@ -32,7 +34,7 @@ export default async function handler(req, res) {
         }
     }
 
-    if (req.query.path === 'detail' || req.path === '/detail' || (id && !keyword)) {
+    if (pathname === '/api/detail' || req.query.path === 'detail' || req.path === '/detail' || (id && !keyword)) {
         if (!id) {
             return res.status(400).json({ success: false, message: '请输入视频ID' });
         }
