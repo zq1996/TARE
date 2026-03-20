@@ -226,8 +226,9 @@
         <div id="results" class="results"></div>
     </div>
 
+    <script src="config.js"></script>
     <script>
-        const API_BASE = 'https://tare-project-9lhfuixbh-zq1996s-projects.vercel.app';
+        const API_BASE = Config.getCurrent().apiBase;
 
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
