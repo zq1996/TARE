@@ -41,11 +41,12 @@ export default async function handler(req, res) {
         }
     }
 
-    if (pathname === '/api/detail' || req.query.path === 'detail' || req.path === '/detail' || (id && !keyword)) {
+    if (pathname === '/api/detail' || req.query.path === 'detail') {
         if (!id) {
             return res.status(400).json({ success: false, message: '请输入视频ID' });
         }
 
+        console.log('Detail - calling getVideoDetail with id:', id);
         try {
             const result = await getVideoDetail(id);
             return res.json({
