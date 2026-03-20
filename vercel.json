@@ -1,11 +1,14 @@
 {
-  "functions": {
-    "api/search.js": {
-      "runtime": "nodejs@18.x",
-      "maxDuration": 30
+  "builds": [
+    {
+      "src": "api/search.js",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/search.js" }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/search.js"
+    }
   ]
 }
