@@ -12,8 +12,11 @@ export default async function handler(req, res) {
     const pathname = req.url.split('?')[0];
 
     console.log('Vercel - req.url:', req.url);
+    console.log('Vercel - req.path:', req.path);
+    console.log('Vercel - req.query:', JSON.stringify(req.query));
     console.log('Vercel - pathname:', pathname);
     console.log('Vercel - keyword:', keyword);
+    console.log('Vercel - id:', id);
 
     if (pathname === '/api/search' || req.query.path === 'search' || req.path === '/search') {
         if (!keyword) {
