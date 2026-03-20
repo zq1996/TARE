@@ -70,14 +70,21 @@ async function searchMukaku(keyword, results) {
     try {
         const searchUrl = `https://web5.mukaku.com/prod/api/v1/getVideoList?sb=${encodeURIComponent(keyword)}&page=1&limit=24&app_id=${APP_ID}&identity=${IDENTITY}`;
         console.log('searchUrl:', searchUrl);
-        
+
         const response = await axios.get(searchUrl, {
             timeout: 15000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': 'https://web5.mukaku.com/search',
+                'Origin': 'https://web5.mukaku.com',
+                'Host': 'web5.mukaku.com',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'zh_CN'
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin'
             }
         });
 
@@ -117,14 +124,21 @@ async function getVideoDetail(id) {
 
     try {
         const detailUrl = `https://web5.mukaku.com/prod/api/v1/getVideoDetail?id=${id}&app_id=${APP_ID}&identity=${IDENTITY}`;
-        
+
         const response = await axios.get(detailUrl, {
             timeout: 15000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': `https://web5.mukaku.com/mv/${id}`,
+                'Origin': 'https://web5.mukaku.com',
+                'Host': 'web5.mukaku.com',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'zh_CN'
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin'
             }
         });
 
