@@ -62,43 +62,39 @@ export default async function handler(req, res) {
 }
 
 async function searchMukaku(keyword, results) {
-    const axios = require('axios');
-
     const APP_ID = '83768d9ad4';
     const IDENTITY = '23734adac0301bccdcb107c4aa21f96c';
 
-    try {
-        const searchUrl = `https://web5.mukaku.com/prod/api/v1/getVideoList?sb=${encodeURIComponent(keyword)}&page=1&limit=24&app_id=${APP_ID}&identity=${IDENTITY}`;
-        console.log('searchUrl:', searchUrl);
+    const searchUrl = `https://web5.mukaku.com/prod/api/v1/getVideoList?sb=${encodeURIComponent(keyword)}&page=1&limit=24&app_id=${APP_ID}&identity=${IDENTITY}`;
+    console.log('searchUrl:', searchUrl);
 
-        const response = await axios.get(searchUrl, {
-            timeout: 15000,
+    try {
+        const response = await fetch(searchUrl, {
+            method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': 'https://web5.mukaku.com/search',
                 'Origin': 'https://web5.mukaku.com',
                 'Host': 'web5.mukaku.com',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin'
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
             }
         });
 
         console.log('response status:', response.status);
-        console.log('response data:', JSON.stringify(response.data).substring(0, 500));
 
-        const data = response.data;
+        const text = await response.text();
+        console.log('response text length:', text.length);
+        console.log('response text preview:', text.substring(0, 300));
+
+        const data = JSON.parse(text);
 
         console.log('data.success:', data.success);
         console.log('data.data exists:', !!data.data);
-        console.log('data.data type:', typeof data.data);
         if (data.data) {
             console.log('data.data keys:', Object.keys(data.data));
-            console.log('data.data.data exists:', !!data.data.data);
+            console.log('data.data.data is array:', Array.isArray(data.data.data));
+            console.log('data.data.data length:', data.data.data?.length || 0);
         }
 
         let items = [];
@@ -133,37 +129,33 @@ async function searchMukaku(keyword, results) {
         });
     } catch (error) {
         console.log('Mukaku search error:', error.message);
+        console.log('Mukaku search error stack:', error.stack);
     }
 }
 
 async function getVideoDetail(id) {
-    const axios = require('axios');
-
     const APP_ID = '83768d9ad4';
     const IDENTITY = '23734adac0301bccdcb107c4aa21f96c';
 
     try {
         const detailUrl = `https://web5.mukaku.com/prod/api/v1/getVideoDetail?id=${id}&app_id=${APP_ID}&identity=${IDENTITY}`;
 
-        const response = await axios.get(detailUrl, {
-            timeout: 15000,
+        const response = await fetch(detailUrl, {
+            method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': `https://web5.mukaku.com/mv/${id}`,
                 'Origin': 'https://web5.mukaku.com',
                 'Host': 'web5.mukaku.com',
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin'
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
             }
         });
 
-        if (response.data.success && response.data.data) {
-            return response.data.data;
+        const data = await response.json();
+
+        if (data.success && data.data) {
+            return data.data;
         }
         return null;
     } catch (error) {
