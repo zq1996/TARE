@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影视搜索</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        h1 {
+            color: white;
+            font-size: 1.8rem;
+        }
+        .search-box {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-input:focus {
+            border-color: #667eea;
+        }
+        .search-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .tab.active {
+            background: rgba(255,255,255,0.3);
+        }
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+        }
+        .result-poster {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        .result-info {
+            padding: 15px;
+        }
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .result-desc {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 42px;
+        }
+        .result-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .result-size {
+            font-size: 0.85rem;
+            color: #999;
+        }
+        .result-type {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #667eea;
+            color: white;
+        }
+        .result-type.magnet {
+            background: #10b981;
+        }
+        .result-type.pan {
+            background: #f59e0b;
+        }
+        .download-btn {
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #5a6fd6;
+        }
+        .loading, .error, .empty {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 1.1rem;
+        }
+        .error {
+            color: #f59e0b;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">←</a>
+            <h1>🎬 影视搜索</h1>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" class="search-input" placeholder="请输入电影或电视剧名称...">
+            <button id="searchBtn" class="search-btn">搜索</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-type="all">全部</button>
+            <button class="tab" data-type="magnet">种子资源</button>
+            <button class="tab" data-type="pan">网盘资源</button>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://your-project.vercel.app/api';
+
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsDiv = document.getElementById('results');
+        const tabs = document.querySelectorAll('.tab');
+
+        let currentResults = [];
+        let currentFilter = 'all';
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.dataset.type;
+                filterResults();
+            });
+        });
+
+        async function performSearch() {
+            const keyword = searchInput.value.trim();
+            if (!keyword) return;
+
+            searchBtn.disabled = true;
+            searchBtn.textContent = '搜索中...';
+            resultsDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div>正在搜索资源...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentResults = data.results;
+                    filterResults();
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">搜索失败: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">请求失败，请检查网络连接</div>`;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '搜索';
+            }
+        }
+
+        function filterResults() {
+            let filtered = currentResults;
+
+            if (currentFilter !== 'all') {
+                filtered = currentResults.filter(r => r.type === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty">未找到相关资源</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = filtered.map(item => `
+                <div class="result-card">
+                    <img class="result-poster" src="${item.poster || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgMjAwIDMwMCI+PHJlY3Qg fill="#ddd" /><text x="50%" y="50%" fill="#999" text-anchor="middle" dy=".3em" font-size="20">暂无图片</text></svg>'}" alt="${item.title}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZm9udC1zaXplPSIyMCI+5pqC5peg5raI5Y+j55SoPC90ZXh0Pjwvc3ZnPg=='">
+                    <div class="result-info">
+                        <div class="result-title">${item.title}</div>
+                        <div class="result-desc">${item.desc || '暂无简介'}</div>
+                        <div class="result-meta">
+                            <span class="result-size">${item.size || '未知大小'}</span>
+                            <span class="result-type ${item.type}">${item.type === 'magnet' ? '种子' : '网盘'}</span>
+                        </div>
+                        <button class="download-btn" onclick="copyToClipboard('${item.url}')">${item.type === 'magnet' ? '复制磁力链接' : '复制网盘链接'}</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('链接已复制到剪贴板！');
+            } catch {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('链接已复制到剪贴板！');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "movie-search-api",
+  "version": "1.0.0",
+  "description": "影视资源搜索API",
+  "main": "api/search.js",
+  "scripts": {
+    "start": "npx vercel dev",
+    "deploy": "npx vercel --prod"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "axios": "^1.6.0"
+  }
+}
